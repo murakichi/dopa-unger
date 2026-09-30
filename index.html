@@ -91,6 +91,7 @@ body.bless #hud{opacity:0}
 #rrank{font-weight:900;font-size:min(9vw,48px);opacity:0;color:#0ff;text-shadow:0 0 20px #0ff}
 #rrank.show{animation:stamp .5s cubic-bezier(.2,1.6,.4,1) forwards}
 @keyframes stamp{0%{opacity:0;transform:scale(4) rotate(-12deg)}100%{opacity:1;transform:scale(1) rotate(-4deg)}}
+#rstat{font-size:min(3.6vw,16px);opacity:.75;letter-spacing:.1em}
 #q{opacity:0;transform:translateY(20px);transition:all .5s;pointer-events:none}
 #q.show{opacity:1;transform:none;pointer-events:auto}
 #q h2{margin:.4em 0 .6em;font-size:min(13vw,80px);font-weight:900;text-shadow:0 0 24px #fff}
@@ -121,7 +122,7 @@ body.bless #hud{opacity:0}
 
 <div id="hud">
   <div id="bar"></div>
-  <div id="score"><small>SCORE</small><span id="scv">0</span></div>
+  <div id="score"><small>SCORE</small><span id="scv">0</span><small>BEST <span id="bst">0</span></small></div>
   <div id="timer">6.00</div>
   <div id="combo"><span id="cn">0</span><small> COMBO</small></div>
   <div id="rage">RAGE MODE ×2</div>
@@ -135,6 +136,7 @@ body.bless #hud{opacity:0}
   <div class="lab">SCORE</div>
   <div id="rscore">0</div>
   <div id="rrank"></div>
+  <div id="rstat"></div>
   <div id="q">
     <h2>収まった？</h2>
     <div class="btns">
@@ -214,7 +216,9 @@ const S = {
   mult: 1, game: null, prev: null, shake: 0, flash: 0, flashCol: '#fff', lastSec: 7, beat: 0,
   time: 0, last: 0, round: 0, finishAt: 0, blessT: 0
 };
-try { S.best = +localStorage.getItem('dopa6best') || 0; } catch (e) {}
+const ST = { best: 0, plays: 0, yes: 0, no: 0, total: 0 };
+try { Object.assign(ST, JSON.parse(localStorage.getItem('dopa6stats') || '{}')); ST.best = Math.max(ST.best, +localStorage.getItem('dopa6best') || 0); } catch (e) {}
+function saveStats(){ try { localStorage.setItem('dopa6stats', JSON.stringify(ST)); } catch (e) {} }
 let parts = [], rings = [], texts = [];
 const E = { timer: $('#timer'), bar: $('#bar'), scv: $('#scv'), combo: $('#combo'), cn: $('#cn') };
 let tmCls = '', lastTm = '', lastSc = -1;
@@ -520,7 +524,10 @@ function showResult(){
       clearInterval(iv);
       const rank = tgt >= 3000 ? 'S  GODLIKE!!' : tgt >= 1800 ? 'A  SUGOI!' : tgt >= 900 ? 'B  NICE!' : 'C  NEXT!';
       let txt = rank;
-      if (tgt > S.best){ S.best = tgt; txt += '  NEW RECORD!'; try { localStorage.setItem('dopa6best', tgt); } catch (e) {} }
+      ST.plays++; ST.total += tgt;
+      if (tgt > ST.best){ ST.best = tgt; txt += '  NEW RECORD!'; }
+      saveStats(); $('#bst').textContent = ST.best.toLocaleString();
+      $('#rstat').textContent = `BEST ${ST.best.toLocaleString()} ・ ${ST.plays}プレイ ・ 累計 ${ST.total.toLocaleString()}点 ・ 収まった ${ST.yes}回`;
       const rr = $('#rrank'); rr.textContent = txt; rr.classList.add('show');
       flash('#fff', .4); shake(14); confetti(W / 2, H * .5, 40);
       [0, 4, 7, 12].forEach((s, i) => tone(392 * 2 ** (s / 12), .4, 'square', .08, 0, i * .07));
@@ -725,9 +732,9 @@ addEventListener('pointerup', () => { P.down = false; });
 addEventListener('pointercancel', () => { P.down = false; });
 document.addEventListener('contextmenu', e => e.preventDefault());
 
-$('#yes').addEventListener('click', () => { audio(); startBless(); });
+$('#yes').addEventListener('click', () => { audio(); ST.yes++; saveStats(); startBless(); });
 $('#no').addEventListener('click', () => {
-  audio(); $('#result').classList.remove('show'); startRound(true);
+  audio(); ST.no++; saveStats(); $('#result').classList.remove('show'); startRound(true);
 });
 $('#again').addEventListener('click', () => {
   audio(); $('#bless').classList.remove('show'); startRound(false);
@@ -735,6 +742,7 @@ $('#again').addEventListener('click', () => {
 
 /* ---------- go! ---------- */
 S.last = performance.now();
+$('#bst').textContent = ST.best.toLocaleString();
 startRound(false);
 requestAnimationFrame(frame);
 </script>
