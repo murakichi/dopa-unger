@@ -455,19 +455,25 @@ function startRound(retry){
   S.round++;
   const opts = GAMES.filter(g => g !== S.prev);
   S.game = pick(opts); S.prev = S.game;
-  S.score = 0; S.shown = 0; tmCls = ''; S.combo = 0; S.lastSec = 7; S.mode = 'play';
+  S.score = 0; S.shown = 0; S.combo = 0; S.lastSec = 7; tmCls = ''; S.remain = 6;
   parts = []; rings = []; texts = [];
-  S.game.init();
   const rage = retry && Math.random() < .35;
   S.mult = rage ? 2 : 1;
   $('#rage').classList.toggle('on', rage);
   E.combo.classList.remove('on');
   document.body.classList.remove('bless');
-  const b = $('#banner');
-  b.innerHTML = `${S.game.name}<small>${S.game.hint}</small>`;
-  b.classList.remove('go'); void b.offsetWidth; b.classList.add('go');
-  if (rage) cutin();
-  S.t0 = performance.now();
+  E.timer.classList.remove('hot', 'crit'); E.timer.textContent = lastTm = '6.00'; E.bar.style.transform = 'scaleX(1)';
+  const begin = () => {
+    S.game.init(); S.mode = 'play';
+    const b = $('#banner');
+    b.innerHTML = `${S.game.name}<small>${S.game.hint}</small>`;
+    b.classList.remove('go'); void b.offsetWidth; b.classList.add('go');
+    S.t0 = performance.now();
+  };
+  if (rage){   // カットインが終わってからゲーム開始
+    S.mode = 'intro'; cutin();
+    const r = S.round; setTimeout(() => { if (S.round === r && S.mode === 'intro') begin(); }, 2500);
+  } else begin();
 }
 function cutin(){
   const c = $('#cutin'); c.classList.remove('go'); void c.offsetWidth; c.classList.add('go');
